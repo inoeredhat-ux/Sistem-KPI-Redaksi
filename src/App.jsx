@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import {
   Upload, FileSpreadsheet, Users, Settings2, AlertTriangle, CheckCircle2,
-  Download, Copy, Calendar, Trophy, FileText,
+  Download, Copy, Calendar, Trophy, FileText, Cloud, CloudOff, RefreshCw,
 } from "lucide-react";
 
 import {
@@ -46,24 +46,75 @@ export default function App() {
   const [toast, setToast] = useState("");
   const fileRef = useRef(null);
 
+  // status penyimpanan: "memuat" | "server" | "lokal"
+  const [sync, setSync] = useState({ status: "memuat", pesan: "", updatedAt: null, updatedBy: "" });
+  const [adaPerubahan, setAdaPerubahan] = useState(null);
+  const [nama, setNamaState] = useState(store.getNama());
+
   const say = useCallback((m) => {
     setToast(m);
     setTimeout(() => setToast(""), 2400);
   }, []);
 
-  /* ---------- muat pengaturan tersimpan ---------- */
-  useEffect(() => {
-    const s = store.load();
+  /* ---------- muat pengaturan ---------- */
+  const terapkan = useCallback((s) => {
     if (!s) return;
     if (s.roster) setRoster(s.roster);
-    if (s.params) setParams(s.params);
-    if (s.targets) setTargets(s.targets);
-    if (s.report) setReport({ ...DEFAULT_REPORT, ...s.report });
+    if (s.params && Object.keys(s.params).length) setParams(s.params);
+    if (s.targets && Object.keys(s.targets).length) setTargets(s.targets);
+    if (s.report && Object.keys(s.report).length) setReport({ ...DEFAULT_REPORT, ...s.report });
   }, []);
 
-  const saveAll = () => {
-    const ok = store.save({ roster, params, targets, report });
-    say(ok ? "Pengaturan tersimpan di peramban ini" : "Gagal menyimpan pengaturan");
+  useEffect(() => {
+    (async () => {
+      const { status, data, pesan } = await store.loadRemote();
+      if (status === "server" && data) {
+        terapkan(data);
+        store.saveLocal(data);
+        setSync({ status: "server", pesan: "", updatedAt: data.updatedAt, updatedBy: data.updatedBy });
+        return;
+      }
+      if (status === "server") {
+        // server siap tapi belum ada isinya
+        terapkan(store.loadLocal());
+        setSync({ status: "server", pesan: "", updatedAt: null, updatedBy: "" });
+        return;
+      }
+      terapkan(store.loadLocal());
+      setSync({ status: "lokal", pesan: pesan || "", updatedAt: null, updatedBy: "" });
+    })();
+  }, [terapkan]);
+
+  /* ---------- pantau perubahan dari perangkat lain ---------- */
+  useEffect(() => {
+    if (sync.status !== "server") return;
+    const t = setInterval(async () => {
+      const baru = await store.cekPerubahan(sync.updatedAt);
+      if (baru) setAdaPerubahan(baru);
+    }, 30000);
+    return () => clearInterval(t);
+  }, [sync.status, sync.updatedAt]);
+
+  const muatPerubahan = () => {
+    terapkan(adaPerubahan);
+    store.saveLocal(adaPerubahan);
+    setSync((p) => ({ ...p, updatedAt: adaPerubahan.updatedAt, updatedBy: adaPerubahan.updatedBy }));
+    setAdaPerubahan(null);
+    say("Pengaturan terbaru dimuat");
+  };
+
+  const saveAll = async () => {
+    const data = { roster, params, targets, report };
+    store.saveLocal(data);
+    const r = await store.saveRemote(data);
+    if (r.ok) {
+      setSync((p) => ({ ...p, status: "server", updatedAt: r.updatedAt, updatedBy: nama || "tanpa nama" }));
+      setAdaPerubahan(null);
+      say("Tersimpan di server, semua orang melihat pengaturan yang sama");
+    } else {
+      setSync((p) => ({ ...p, status: "lokal", pesan: r.pesan }));
+      say(`${r.pesan}. Untuk sementara tersimpan di peramban ini.`);
+    }
   };
 
   const exportCfg = () => {
@@ -74,24 +125,21 @@ export default function App() {
   const importCfg = async (file) => {
     try {
       const s = await store.muatDariBerkas(file);
-      if (s.roster) setRoster(s.roster);
-      if (s.params) setParams(s.params);
-      if (s.targets) setTargets(s.targets);
-      if (s.report) setReport({ ...DEFAULT_REPORT, ...s.report });
-      store.save(s);
-      say("Pengaturan berhasil dimuat");
+      terapkan(s);
+      store.saveLocal(s);
+      say("Pengaturan dimuat. Tekan Simpan agar berlaku untuk semua orang.");
     } catch {
       say("File pengaturan tidak terbaca");
     }
   };
 
   const resetCfg = () => {
-    store.clear();
+    store.clearLocal();
     setParams(DEFAULT_PARAMS);
     setTargets(DEFAULT_TARGETS);
     setReport(DEFAULT_REPORT);
     setRoster({});
-    say("Pengaturan dikembalikan ke bawaan");
+    say("Dikembalikan ke bawaan. Tekan Simpan bila ingin berlaku untuk semua orang.");
   };
 
   /* ---------- baca file ---------- */
@@ -197,6 +245,7 @@ export default function App() {
             </div>
           </div>
           <div className="flex-1" />
+          <SyncBadge sync={sync} nama={nama} setNama={(v) => { setNamaState(v); store.setNama(v); }} />
           {articles.length > 0 && (
             <div className="flex items-center gap-1.5 flex-wrap">
               {TABS.map(([k, l, Icon]) => (
@@ -222,6 +271,20 @@ export default function App() {
       </header>
 
       <main className="max-w-[1180px] mx-auto px-5 py-6">
+        {adaPerubahan && (
+          <div className="mb-4 flex flex-wrap items-center gap-3 rounded-lg px-4 py-3 text-[13px] no-print"
+            style={{ background: "#EAF3FB", color: "#1B4C73" }}>
+            <RefreshCw size={15} className="shrink-0" />
+            <span>
+              Pengaturan diubah dari perangkat lain
+              {adaPerubahan.updatedBy ? ` oleh ${adaPerubahan.updatedBy}` : ""}.
+            </span>
+            <div className="flex-1" />
+            <Btn size="sm" onClick={muatPerubahan}>Muat yang terbaru</Btn>
+            <Btn size="sm" variant="quiet" onClick={() => setAdaPerubahan(null)}>Nanti saja</Btn>
+          </div>
+        )}
+
         {!articles.length && <UploadZone onFile={handleFile} busy={busy} fileRef={fileRef} />}
 
         <input
@@ -360,6 +423,45 @@ export default function App() {
       />
 
       <Toast text={toast} />
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------- */
+
+/** Penanda tempat pengaturan tersimpan, plus kolom nama pengubah. */
+function SyncBadge({ sync, nama, setNama }) {
+  const server = sync.status === "server";
+  const memuat = sync.status === "memuat";
+  const warna = memuat ? "#8593AC" : server ? "#7FD8B0" : "#F0B37E";
+  const Icon = server ? Cloud : CloudOff;
+
+  return (
+    <div className="flex items-center gap-2 no-print">
+      {server && (
+        <input
+          value={nama}
+          onChange={(e) => setNama(e.target.value)}
+          placeholder="Nama Anda"
+          title="Dicatat sebagai pengubah pengaturan"
+          className="rounded px-2 py-1 text-[11.5px] w-[110px] bg-transparent border"
+          style={{ borderColor: "#3A4560", color: "#D6DEEA" }}
+        />
+      )}
+      <div
+        className="flex items-center gap-1.5 px-2 py-1 rounded text-[11px] font-medium"
+        style={{ background: "#1E2740", color: warna }}
+        title={
+          memuat
+            ? "Memeriksa penyimpanan"
+            : server
+            ? "Pengaturan tersimpan di server. Semua orang melihat data yang sama."
+            : `${sync.pesan}. Pengaturan hanya berlaku di peramban ini.`
+        }
+      >
+        <Icon size={12} strokeWidth={2.2} />
+        {memuat ? "Memeriksa…" : server ? "Server" : "Peramban ini"}
+      </div>
     </div>
   );
 }

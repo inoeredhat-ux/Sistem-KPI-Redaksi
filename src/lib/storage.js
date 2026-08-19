@@ -1,18 +1,21 @@
 /**
  * Penyimpanan pengaturan.
  *
- * Sengaja memakai localStorage, bukan basis data. Alasannya: pengaturan di sini
- * (jabatan, target, bobot, penanda tangan) hanya berubah beberapa kali setahun
- * dan dipakai satu-dua orang. Basis data akan menambah kebutuhan autentikasi,
- * biaya hosting, dan titik kegagalan baru tanpa manfaat yang sepadan.
+ * Urutan yang dipakai:
+ *   1. Server (Redis lewat /api/settings) — semua orang melihat pengaturan yang sama.
+ *   2. Peramban (localStorage) — cadangan bila server belum disiapkan atau sedang gagal.
  *
- * Untuk berbagi pengaturan antar-komputer, pakai simpanKeBerkas() dan
- * muatDariBerkas() — hasilnya satu file JSON kecil yang bisa dikirim lewat chat.
+ * Aplikasi tetap berfungsi penuh meski server belum diatur. Dalam kondisi itu
+ * pengaturan hanya berlaku di peramban masing-masing, dan status di bagian atas
+ * layar akan menunjukkannya.
  */
 
 const KEY = "kpi-redaksi:settings:v1";
+const NAMA_KEY = "kpi-redaksi:nama-pengubah";
 
-export function load() {
+/* ---------------- peramban ---------------- */
+
+export function loadLocal() {
   try {
     const raw = localStorage.getItem(KEY);
     return raw ? JSON.parse(raw) : null;
@@ -21,7 +24,7 @@ export function load() {
   }
 }
 
-export function save(data) {
+export function saveLocal(data) {
   try {
     localStorage.setItem(KEY, JSON.stringify(data));
     return true;
@@ -30,7 +33,7 @@ export function save(data) {
   }
 }
 
-export function clear() {
+export function clearLocal() {
   try {
     localStorage.removeItem(KEY);
     return true;
@@ -39,11 +42,69 @@ export function clear() {
   }
 }
 
-/** Unduh seluruh pengaturan sebagai file JSON. */
+/** Nama pengubah, supaya jejak perubahan terbaca siapa pelakunya. */
+export function getNama() {
+  try {
+    return localStorage.getItem(NAMA_KEY) || "";
+  } catch {
+    return "";
+  }
+}
+
+export function setNama(v) {
+  try {
+    localStorage.setItem(NAMA_KEY, v);
+  } catch {
+    /* abaikan */
+  }
+}
+
+/* ---------------- server ---------------- */
+
+/** Ambil pengaturan dari server. */
+export async function loadRemote() {
+  try {
+    const r = await fetch("/api/settings", { cache: "no-store" });
+    if (r.status === 503) {
+      return { status: "lokal", data: null, pesan: "Penyimpanan server belum disiapkan" };
+    }
+    if (!r.ok) {
+      return { status: "lokal", data: null, pesan: "Server tidak menjawab" };
+    }
+    return { status: "server", data: await r.json() };
+  } catch {
+    return { status: "lokal", data: null, pesan: "Tidak ada koneksi ke server" };
+  }
+}
+
+/** Simpan pengaturan ke server. */
+export async function saveRemote(data) {
+  try {
+    const r = await fetch("/api/settings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...data, updatedBy: getNama() || "tanpa nama" }),
+    });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) return { ok: false, pesan: j.pesan || "Gagal menyimpan ke server" };
+    return { ok: true, updatedAt: j.updatedAt };
+  } catch {
+    return { ok: false, pesan: "Tidak ada koneksi ke server" };
+  }
+}
+
+/** Cek apakah ada perubahan lebih baru di server, tanpa menimpa layar. */
+export async function cekPerubahan(sejak) {
+  const { status, data } = await loadRemote();
+  if (status !== "server" || !data?.updatedAt) return null;
+  if (sejak && data.updatedAt <= sejak) return null;
+  return data;
+}
+
+/* ---------------- berkas JSON ---------------- */
+
 export function simpanKeBerkas(data) {
-  const blob = new Blob([JSON.stringify(data, null, 2)], {
-    type: "application/json",
-  });
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
@@ -52,8 +113,6 @@ export function simpanKeBerkas(data) {
   URL.revokeObjectURL(url);
 }
 
-/** Baca file JSON pengaturan yang dipilih pengguna. */
 export async function muatDariBerkas(file) {
-  const text = await file.text();
-  return JSON.parse(text);
+  return JSON.parse(await file.text());
 }
