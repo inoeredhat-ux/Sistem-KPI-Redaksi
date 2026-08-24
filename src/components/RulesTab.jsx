@@ -1,6 +1,9 @@
 import React from "react";
 import { Check, RotateCcw } from "lucide-react";
-import { SLATE, LINE, TIERS, DEFAULT_PARAMS, DEFAULT_TARGETS } from "../lib/constants.js";
+import {
+  SLATE, LINE, INK, TIERS, DEFAULT_PARAMS, DEFAULT_TARGETS,
+  DEFAULT_VIDEO_POIN, DEFAULT_VIDEO_FAKTOR, VIDEO_JENIS, VIDEO_PLATFORM,
+} from "../lib/constants.js";
 import { rupiah } from "../lib/format.js";
 import { Btn, GradePill } from "./ui.jsx";
 
@@ -12,7 +15,7 @@ const FIELDS = [
   ["cap", "Batas maksimum tiap komponen"],
 ];
 
-export default function RulesTab({ params, setParams, targets, setTargets, onSave }) {
+export default function RulesTab({ params, setParams, targets, setTargets, poin, setPoin, faktor, setFaktor, onSave }) {
   return (
     <div className="grid lg:grid-cols-2 gap-4">
       <div className="rounded-lg border bg-white p-5" style={{ borderColor: LINE }}>
@@ -34,6 +37,25 @@ export default function RulesTab({ params, setParams, targets, setTargets, onSav
             </div>
           ))}
         </div>
+        <div className="mt-4 pt-4 border-t" style={{ borderColor: "#EEF1F5" }}>
+          <label className="flex items-start gap-2.5 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={params.alihkanKreditPenulis !== false}
+              onChange={(e) => setParams((p) => ({ ...p, alihkanKreditPenulis: e.target.checked }))}
+              className="mt-0.5"
+              style={{ accentColor: INK }}
+            />
+            <span className="text-[13px]">
+              Alihkan kredit penulis ke editor bila penulis tidak dinilai
+              <span className="block text-[11.5px] mt-0.5" style={{ color: SLATE }}>
+                Untuk byline seperti Advertorial. Editor menerima 100% kredit viewers, bukan {Math.round(params.cEditor * 100)}%,
+                karena tidak ada penulis yang berbagi.
+              </span>
+            </span>
+          </label>
+        </div>
+
         <div className="mt-4 pt-4 border-t text-[12px] leading-relaxed" style={{ borderColor: "#EEF1F5", color: SLATE }}>
           Bobot viewers dan produktivitas harus berjumlah 100%. Begitu pula kredit penulis dan editor. Batas maksimum
           menjaga agar satu artikel viral tidak memborong seluruh pool reward.
@@ -86,9 +108,70 @@ export default function RulesTab({ params, setParams, targets, setTargets, onSav
 
         <div className="mt-5 flex gap-2">
           <Btn size="sm" variant="solid" onClick={onSave}><Check size={13} /> Simpan pengaturan</Btn>
-          <Btn size="sm" onClick={() => { setParams(DEFAULT_PARAMS); setTargets(DEFAULT_TARGETS); }}>
+          <Btn size="sm" onClick={() => {
+            setParams(DEFAULT_PARAMS); setTargets(DEFAULT_TARGETS);
+            setPoin(DEFAULT_VIDEO_POIN); setFaktor(DEFAULT_VIDEO_FAKTOR);
+          }}>
             <RotateCcw size={13} /> Kembalikan bawaan
           </Btn>
+        </div>
+      </div>
+
+      <div className="rounded-lg border bg-white p-5" style={{ borderColor: LINE }}>
+        <div className="font-semibold text-[14px]">Poin produksi video dan indepth</div>
+        <div className="text-[12px] mt-1" style={{ color: SLATE }}>
+          Satu artikel teks = 1 poin, dipakai sebagai patokan.
+        </div>
+        <div className="mt-3.5 space-y-2.5">
+          {[{ k: "indepth", label: "Artikel indepth", ket: "per artikel tambahan" }, ...VIDEO_JENIS].map((v) => (
+            <div key={v.k} className="flex items-center justify-between gap-3">
+              <div className="text-[13px]">
+                {v.label}
+                <span className="block text-[11px]" style={{ color: SLATE }}>{v.ket}</span>
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <input
+                  type="number" min="0" step="1"
+                  value={poin[v.k]}
+                  onChange={(e) => setPoin((p) => ({ ...p, [v.k]: +e.target.value || 0 }))}
+                  className="w-16 rounded border px-2 py-1 text-[13px] text-right tnum"
+                  style={{ borderColor: LINE }}
+                />
+                <span className="text-[12px]" style={{ color: SLATE }}>poin</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="rounded-lg border bg-white p-5" style={{ borderColor: LINE }}>
+        <div className="font-semibold text-[14px]">Faktor konversi views media sosial</div>
+        <div className="text-[12px] mt-1" style={{ color: SLATE }}>
+          Satu view di platform orang lain tidak senilai satu pembaca artikel sendiri.
+        </div>
+        <div className="mt-3.5 space-y-2.5">
+          {VIDEO_PLATFORM.map((pl) => (
+            <div key={pl.k} className="flex items-center justify-between gap-3">
+              <div className="text-[13px]">
+                {pl.label}
+                <span className="block text-[11px]" style={{ color: SLATE }}>{pl.ket}</span>
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <span className="text-[12px]" style={{ color: SLATE }}>×</span>
+                <input
+                  type="number" min="0" step="0.05"
+                  value={faktor[pl.k]}
+                  onChange={(e) => setFaktor((p) => ({ ...p, [pl.k]: +e.target.value || 0 }))}
+                  className="w-20 rounded border px-2 py-1 text-[13px] text-right tnum"
+                  style={{ borderColor: LINE }}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="mt-4 pt-4 border-t text-[12px] leading-relaxed" style={{ borderColor: "#EEF1F5", color: SLATE }}>
+          Dengan faktor 0,25 dibutuhkan empat view TikTok untuk setara satu pembaca artikel.
+          Tanpa pembeda ini, reporter terdorong meninggalkan artikel dan mengejar reels.
         </div>
       </div>
     </div>

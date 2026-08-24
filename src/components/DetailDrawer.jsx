@@ -44,8 +44,52 @@ export default function DetailDrawer({ name, row, articles, params, roster, onCl
                 <div className="text-[15px] font-semibold tnum mt-0.5">{v}</div>
               </div>
             ))}
-            <div className="col-span-2 text-[12px] leading-relaxed pt-1" style={{ color: SLATE }}>
-              Kredit = {pct(params.cWriter)} × {nf.format(row.vw)} + {pct(params.cEditor)} × {nf.format(row.ve)} = {nf.format(row.credit)}
+            <div className="col-span-2 text-[12px] leading-relaxed pt-1 space-y-1" style={{ color: SLATE }}>
+              <div>
+                Kredit artikel = {pct(params.cWriter)} × {nf.format(row.vw)} + {pct(params.cEditor)} × {nf.format(row.ve)}
+                {row.veAlih > 0 && ` + ${pct(params.cWriter)} × ${nf.format(row.veAlih)} (dialihkan)`}
+                {" = "}{nf.format(row.kreditArtikel)}
+              </div>
+              {row.nAdv > 0 && (
+                <div>
+                  {nf.format(row.nAdv)} artikel di antaranya berpenulis tidak dinilai, sehingga kreditnya diterima penuh.
+                </div>
+              )}
+              {row.kreditVideo > 0 && (
+                <div>Kredit video media sosial = {nf.format(row.kreditVideo)}</div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {row?.adaManual && (
+          <div className="px-5 py-3.5 border-b" style={{ borderColor: "#EEF1F5", background: "#F7FBF9" }}>
+            <div className="text-[10px] font-semibold tracking-[0.12em] uppercase mb-2" style={{ color: SLATE }}>
+              Tambahan manual
+            </div>
+            <div className="space-y-1 text-[12.5px]">
+              {row.poinIndepth > 0 && (
+                <div className="flex justify-between gap-3">
+                  <span>{nf.format(row.nIndepth)} artikel indepth</span>
+                  <span className="tnum font-semibold">+{nf.format(row.poinIndepth)} poin</span>
+                </div>
+              )}
+              {row.poinVideo > 0 && (
+                <div className="flex justify-between gap-3">
+                  <span>{nf.format(row.nVideo)} video diproduksi</span>
+                  <span className="tnum font-semibold">+{nf.format(row.poinVideo)} poin</span>
+                </div>
+              )}
+              {row.kreditVideo > 0 && (
+                <div className="flex justify-between gap-3">
+                  <span>Views video media sosial</span>
+                  <span className="tnum font-semibold">+{nf.format(row.kreditVideo)} kredit</span>
+                </div>
+              )}
+              <div className="flex justify-between gap-3 pt-1 mt-1 border-t" style={{ borderColor: "#E3EDE8" }}>
+                <span style={{ color: SLATE }}>Artikel dari CMS</span>
+                <span className="tnum" style={{ color: SLATE }}>{nf.format(row.dasar)}</span>
+              </div>
             </div>
           </div>
         )}

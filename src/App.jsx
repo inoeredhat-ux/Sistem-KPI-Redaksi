@@ -1,12 +1,13 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import {
   Upload, FileSpreadsheet, Users, Settings2, AlertTriangle, CheckCircle2,
-  Download, Copy, Calendar, Trophy, FileText, Cloud, CloudOff, RefreshCw,
+  Download, Copy, Calendar, Trophy, FileText, Cloud, CloudOff, RefreshCw, SlidersHorizontal,
 } from "lucide-react";
 
 import {
   INK, RED, PAPER, SLATE, LINE, BULAN,
   DEFAULT_PARAMS, DEFAULT_TARGETS, DEFAULT_REPORT,
+  DEFAULT_VIDEO_POIN, DEFAULT_VIDEO_FAKTOR,
 } from "./lib/constants.js";
 import { nf, pct, dLabel } from "./lib/format.js";
 import { readFile } from "./lib/parse.js";
@@ -24,6 +25,7 @@ import ReportTab from "./components/ReportTab.jsx";
 import RosterTab from "./components/RosterTab.jsx";
 import RulesTab from "./components/RulesTab.jsx";
 import ChecksTab from "./components/ChecksTab.jsx";
+import ManualTab from "./components/ManualTab.jsx";
 import DetailDrawer from "./components/DetailDrawer.jsx";
 
 export default function App() {
@@ -39,6 +41,10 @@ export default function App() {
   const [targets, setTargets] = useState(DEFAULT_TARGETS);
   const [report, setReport] = useState(DEFAULT_REPORT);
   const [notes, setNotes] = useState({});
+  const [poin, setPoin] = useState(DEFAULT_VIDEO_POIN);
+  const [faktor, setFaktor] = useState(DEFAULT_VIDEO_FAKTOR);
+  // entri manual disimpan per periode: { "2026-08": { "Nama": {...} } }
+  const [manualAll, setManualAll] = useState({});
 
   const [range, setRange] = useState({ from: "", to: "" });
   const [prorate, setProrate] = useState(true);
@@ -63,6 +69,9 @@ export default function App() {
     if (s.params && Object.keys(s.params).length) setParams(s.params);
     if (s.targets && Object.keys(s.targets).length) setTargets(s.targets);
     if (s.report && Object.keys(s.report).length) setReport({ ...DEFAULT_REPORT, ...s.report });
+    if (s.poin && Object.keys(s.poin).length) setPoin({ ...DEFAULT_VIDEO_POIN, ...s.poin });
+    if (s.faktor && Object.keys(s.faktor).length) setFaktor({ ...DEFAULT_VIDEO_FAKTOR, ...s.faktor });
+    if (s.manual) setManualAll(s.manual);
   }, []);
 
   useEffect(() => {
@@ -104,7 +113,7 @@ export default function App() {
   };
 
   const saveAll = async () => {
-    const data = { roster, params, targets, report };
+    const data = { roster, params, targets, report, poin, faktor, manual: manualAll };
     store.saveLocal(data);
     const r = await store.saveRemote(data);
     if (r.ok) {
@@ -118,7 +127,7 @@ export default function App() {
   };
 
   const exportCfg = () => {
-    store.simpanKeBerkas({ roster, params, targets, report });
+    store.simpanKeBerkas({ roster, params, targets, report, poin, faktor, manual: manualAll });
     say("Pengaturan diunduh sebagai JSON");
   };
 
@@ -139,6 +148,8 @@ export default function App() {
     setTargets(DEFAULT_TARGETS);
     setReport(DEFAULT_REPORT);
     setRoster({});
+    setPoin(DEFAULT_VIDEO_POIN);
+    setFaktor(DEFAULT_VIDEO_FAKTOR);
     say("Dikembalikan ke bawaan. Tekan Simpan bila ingin berlaku untuk semua orang.");
   };
 
@@ -183,9 +194,20 @@ export default function App() {
   const presets = useMemo(() => buildPresets(articles), [articles]);
   const inRange = useMemo(() => filterByRange(articles, range), [articles, range]);
   const ratio = useMemo(() => prorateRatio(range, prorate), [range, prorate]);
+  const periodKey = useMemo(() => (range.to ? range.to.slice(0, 7) : ""), [range.to]);
+  const manual = useMemo(() => manualAll[periodKey] || {}, [manualAll, periodKey]);
+  const setManual = useCallback(
+    (fn) =>
+      setManualAll((p) => ({
+        ...p,
+        [periodKey]: typeof fn === "function" ? fn(p[periodKey] || {}) : fn,
+      })),
+    [periodKey]
+  );
+
   const results = useMemo(
-    () => computeResults({ articles: inRange, roster, targets, params, ratio }),
-    [inRange, roster, targets, params, ratio]
+    () => computeResults({ articles: inRange, roster, targets, params, ratio, manual, poin, faktor }),
+    [inRange, roster, targets, params, ratio, manual, poin, faktor]
   );
   const totals = useMemo(() => summarise(results, inRange), [results, inRange]);
   const names = useMemo(() => collectNames(articles), [articles]);
@@ -224,6 +246,7 @@ export default function App() {
   const TABS = [
     ["klasemen", "Klasemen", Trophy],
     ["laporan", "Laporan", FileText],
+    ["manual", "Manual", SlidersHorizontal],
     ["orang", "Jabatan", Users],
     ["aturan", "Aturan", Settings2],
     ["cek", "Cek data", failing ? AlertTriangle : CheckCircle2],
@@ -391,7 +414,7 @@ export default function App() {
                 notes={notes} setNotes={setNotes} periodLabel={periodLabel} topViewer={topViewer}
                 recap={recap} params={params} onSave={saveAll}
                 onExport={() => {
-                  exportLaporan({ ...ctx, report, notes, periodLabel, topViewer });
+                  exportLaporan({ ...ctx, report, notes, periodLabel, topViewer, manual, poin, faktor });
                   say("Laporan bulanan terunduh");
                 }}
               />
@@ -405,7 +428,21 @@ export default function App() {
             )}
 
             {tab === "aturan" && (
-              <RulesTab params={params} setParams={setParams} targets={targets} setTargets={setTargets} onSave={saveAll} />
+              <RulesTab
+                params={params} setParams={setParams}
+                targets={targets} setTargets={setTargets}
+                poin={poin} setPoin={setPoin}
+                faktor={faktor} setFaktor={setFaktor}
+                onSave={saveAll}
+              />
+            )}
+
+            {tab === "manual" && (
+              <ManualTab
+                results={results} manual={manual} setManual={setManual}
+                periodKey={periodKey} periodLabel={periodLabel}
+                poin={poin} faktor={faktor} onSave={saveAll}
+              />
             )}
 
             {tab === "cek" && <ChecksTab checks={checks} />}

@@ -30,6 +30,58 @@ export const DEFAULT_PARAMS = {
   cWriter: 0.6,
   cEditor: 0.4,
   cap: 2,
+  /**
+   * Bila penulis sebuah artikel berstatus "Tidak dinilai" — misalnya byline
+   * Advertorial — porsi kredit penulis dialihkan ke editor yang menaikkan.
+   * Editor menerima 100%, bukan 40%, karena tidak ada penulis yang berbagi.
+   */
+  alihkanKreditPenulis: true,
+};
+
+/**
+ * Bobot poin produksi video. Satu artikel teks = 1 poin, dipakai sebagai patokan.
+ * Angka ditarik dari estimasi jam kerja, bukan perkiraan kasar.
+ */
+export const DEFAULT_VIDEO_POIN = {
+  reels: 3,
+  pkg: 6,
+  live: 8,
+  vind: 12,
+  indepth: 1,
+};
+
+export const VIDEO_JENIS = [
+  { k: "reels", label: "Reels / Shorts", ket: "vertikal, di bawah 90 detik" },
+  { k: "pkg", label: "News Package", ket: "1–3 menit, ada voice over atau wawancara" },
+  { k: "live", label: "Live Report", ket: "siaran langsung dari lapangan" },
+  { k: "vind", label: "Indepth Video", ket: "di atas 5 menit, multi-narasumber" },
+];
+
+/**
+ * Faktor konversi views media sosial menjadi kredit viewers.
+ * Satu view TikTok tidak senilai satu pembaca artikel, karena traffic-nya
+ * berada di platform orang lain dan tidak masuk inventori iklan sendiri.
+ */
+export const DEFAULT_VIDEO_FAKTOR = {
+  onsite: 1.0,
+  yt: 0.8,
+  tt: 0.25,
+  ig: 0.25,
+  fb: 0.25,
+};
+
+export const VIDEO_PLATFORM = [
+  { k: "onsite", label: "Video on-site", ket: "player inilah.com, tonton ≥30 detik" },
+  { k: "yt", label: "YouTube", ket: "tonton ≥30 detik atau ≥50% durasi" },
+  { k: "tt", label: "TikTok", ket: "tuntas atau tonton ≥6 detik" },
+  { k: "ig", label: "Instagram Reels", ket: "tuntas atau tonton ≥6 detik" },
+  { k: "fb", label: "Facebook", ket: "tonton ≥15 detik" },
+];
+
+/** Bentuk kosong satu baris entri manual. */
+export const MANUAL_KOSONG = {
+  ind: 0, reels: 0, pkg: 0, live: 0, vind: 0,
+  onsite: 0, yt: 0, tt: 0, ig: 0, fb: 0,
 };
 
 export const TIERS = [

@@ -1,5 +1,5 @@
 import * as XLSX from "xlsx";
-import { TIERS } from "./constants.js";
+import { TIERS, VIDEO_JENIS, VIDEO_PLATFORM } from "./constants.js";
 import { nf, pct, rupiah, dLabel, todayLabel } from "./format.js";
 
 const MONEY = '#,##0;[Red]-#,##0;"-"';
@@ -55,6 +55,7 @@ function sheetArtikel(articles) {
 export function exportLaporan({
   results, articles, range, fileName, params, targets, prorate, ratio,
   totals, report, notes, periodLabel, topViewer, recap,
+  manual: manualData = {}, poin: poinData = {}, faktor: faktorData = {},
 }) {
   const NC = 16;
   const wb = XLSX.utils.book_new();
@@ -226,6 +227,40 @@ export function exportLaporan({
   const ws3 = XLSX.utils.aoa_to_sheet(S);
   ws3["!cols"] = [{ wch: 42 }, { wch: 22 }, { wch: 22 }, { wch: 16 }];
   XLSX.utils.book_append_sheet(wb, ws3, "Skema KPI");
+
+  /* ---- lampiran: tambahan manual ---- */
+  const adaManual = results.some((r) => r.adaManual);
+  if (adaManual) {
+    const M = [];
+    M.push(["TAMBAHAN MANUAL DI LUAR DATA CMS"]);
+    M.push([`Periode ${periodLabel}`]);
+    M.push(["Artikel indepth multi-penulis dan produksi video media sosial."]);
+    M.push([]);
+    M.push([
+      "Nama", "Jabatan", "Artikel dari CMS", "Artikel Indepth", "Poin Indepth",
+      ...VIDEO_JENIS.map((v) => v.label), "Poin Video", "Total Dihitung",
+      ...VIDEO_PLATFORM.map((p) => `Views ${p.label}`), "Kredit Video",
+      "Kredit Artikel", "Total Kredit",
+    ]);
+    results.filter((r) => r.adaManual).forEach((r) => {
+      const m = manualData[r.name] || {};
+      M.push([
+        r.name, r.role, r.dasar, m.ind || 0, r.poinIndepth,
+        ...VIDEO_JENIS.map((v) => m[v.k] || 0), r.poinVideo, r.count,
+        ...VIDEO_PLATFORM.map((p) => m[p.k] || 0), r.kreditVideo,
+        r.kreditArtikel, r.credit,
+      ]);
+    });
+    M.push([]);
+    M.push(["BOBOT YANG DIPAKAI"]);
+    M.push(["Artikel indepth", `${poinData.indepth} poin per artikel`]);
+    VIDEO_JENIS.forEach((v) => M.push([v.label, `${poinData[v.k]} poin per video`]));
+    M.push([]);
+    VIDEO_PLATFORM.forEach((p) => M.push([`Faktor ${p.label}`, faktorData[p.k]]));
+    const wsM = XLSX.utils.aoa_to_sheet(M);
+    wsM["!cols"] = [{ wch: 26 }, { wch: 19 }, ...Array(20).fill({ wch: 13 })];
+    XLSX.utils.book_append_sheet(wb, wsM, "Tambahan Manual");
+  }
 
   XLSX.utils.book_append_sheet(wb, sheetArtikel(articles), "Data Artikel");
   XLSX.writeFile(wb, `Laporan_KPI_${periodLabel.replace(/[^\w]+/g, "_")}.xlsx`);

@@ -1,4 +1,7 @@
-import { EDITOR_ROLES, DEFAULT_TARGETS, TIERS } from "./constants.js";
+import {
+  EDITOR_ROLES, DEFAULT_TARGETS, TIERS,
+  DEFAULT_VIDEO_POIN, DEFAULT_VIDEO_FAKTOR, MANUAL_KOSONG,
+} from "./constants.js";
 import { gradeOf } from "./format.js";
 
 /** Saring artikel berdasarkan rentang tanggal (inklusif). */
@@ -47,12 +50,24 @@ export function collectNames(articles) {
  *   %prod   = min(jumlah artikel / target produktivitas, cap)
  *   skor    = (wViews x %views) + (wProd x %prod)
  */
-export function computeResults({ articles, roster, targets, params, ratio }) {
+export function computeResults({
+  articles, roster, targets, params, ratio,
+  manual = {}, poin = DEFAULT_VIDEO_POIN, faktor = DEFAULT_VIDEO_FAKTOR,
+}) {
   const acc = {};
   const touch = (n) =>
-    (acc[n] = acc[n] || { name: n, nw: 0, ne: 0, vw: 0, ve: 0 });
+    (acc[n] = acc[n] || {
+      name: n, nw: 0, ne: 0, vw: 0, ve: 0,
+      veAlih: 0,      // views artikel yang penulisnya tidak dinilai
+      nAdv: 0,        // jumlah artikel semacam itu yang disunting
+    });
+
+  const alihkan = params.alihkanKreditPenulis !== false;
 
   articles.forEach((a) => {
+    // penulis yang tidak dinilai (mis. byline Advertorial) tidak punya baris sendiri
+    const penulisDilewati = !a.author || roster[a.author] === "Tidak dinilai";
+
     if (a.author) {
       const t = touch(a.author);
       t.nw++;
@@ -62,7 +77,16 @@ export function computeResults({ articles, roster, targets, params, ratio }) {
       const t = touch(a.editor);
       t.ne++;
       t.ve += a.views;
+      if (penulisDilewati) {
+        t.nAdv++;
+        if (alihkan) t.veAlih += a.views;
+      }
     }
+  });
+
+  // pastikan orang yang hanya punya entri manual tetap muncul
+  Object.keys(manual).forEach((n) => {
+    if (roster[n] && roster[n] !== "Tidak dinilai") touch(n);
   });
 
   return Object.values(acc)
@@ -74,8 +98,24 @@ export function computeResults({ articles, roster, targets, params, ratio }) {
       const tProd = Math.max(tg.prod * ratio, 1);
       const tViews = Math.max(tg.views * ratio, 1);
 
-      const count = EDITOR_ROLES.includes(role) ? p.ne : p.nw;
-      const credit = Math.round(params.cWriter * p.vw + params.cEditor * p.ve);
+      const m = { ...MANUAL_KOSONG, ...(manual[p.name] || {}) };
+
+      // --- produktivitas ---
+      const dasar = EDITOR_ROLES.includes(role) ? p.ne : p.nw;
+      const poinIndepth = m.ind * (poin.indepth ?? 1);
+      const poinVideo =
+        m.reels * poin.reels + m.pkg * poin.pkg + m.live * poin.live + m.vind * poin.vind;
+      const count = dasar + poinIndepth + poinVideo;
+
+      // --- kredit viewers ---
+      const kreditArtikel = Math.round(
+        params.cWriter * p.vw + params.cEditor * p.ve + params.cWriter * p.veAlih
+      );
+      const kreditVideo = Math.round(
+        m.onsite * faktor.onsite + m.yt * faktor.yt +
+        m.tt * faktor.tt + m.ig * faktor.ig + m.fb * faktor.fb
+      );
+      const credit = kreditArtikel + kreditVideo;
 
       const pProd = Math.min(count / tProd, params.cap);
       const pViews = Math.min(credit / tViews, params.cap);
@@ -84,19 +124,14 @@ export function computeResults({ articles, roster, targets, params, ratio }) {
 
       return {
         ...p,
-        role,
-        count,
-        credit,
-        tProd,
-        tViews,
-        pProd,
-        pViews,
-        score,
+        role, count, credit, tProd, tViews, pProd, pViews, score,
+        dasar, poinIndepth, poinVideo, kreditArtikel, kreditVideo,
+        nVideo: m.reels + m.pkg + m.live + m.vind,
+        nIndepth: m.ind,
+        adaManual: poinIndepth + poinVideo + kreditVideo > 0,
         vPart: params.wViews * pViews,
         pPart: params.wProd * pProd,
-        grade: g.grade,
-        label: g.label,
-        reward: g.reward,
+        grade: g.grade, label: g.label, reward: g.reward,
       };
     })
     .filter(Boolean)
