@@ -36,7 +36,8 @@ export default function DetailDrawer({ name, row, articles, params, roster, onCl
               ["Grade", row.grade + " · " + row.label],
               ["Views tulisan", nf.format(row.vw)],
               ["Views suntingan", nf.format(row.ve)],
-              ["Kredit viewers", nf.format(row.credit)],
+              ["Viewers web", nf.format(row.credit)],
+              ...(row.pakaiMedsos ? [["Engagement medsos", nf.format(row.kreditMedsos)]] : []),
               ["Reward", rupiah(row.reward)],
             ].map(([l, v]) => (
               <div key={l}>
@@ -55,8 +56,13 @@ export default function DetailDrawer({ name, row, articles, params, roster, onCl
                   {nf.format(row.nAdv)} artikel di antaranya berpenulis tidak dinilai, sehingga kreditnya diterima penuh.
                 </div>
               )}
-              {row.kreditVideo > 0 && (
-                <div>Kredit video media sosial = {nf.format(row.kreditVideo)}</div>
+              {row.kreditVideoWeb > 0 && (
+                <div>Video on-site ikut viewers web = {nf.format(row.kreditVideoWeb)}</div>
+              )}
+              {row.pakaiMedsos && (
+                <div>
+                  Bobot skor: {Math.round(row.bobotWeb * 100)}% web + {Math.round(row.bobotMedsos * 100)}% medsos + {Math.round((1 - row.bobotWeb - row.bobotMedsos) * 100)}% produktivitas
+                </div>
               )}
             </div>
           </div>
@@ -80,10 +86,16 @@ export default function DetailDrawer({ name, row, articles, params, roster, onCl
                   <span className="tnum font-semibold">+{nf.format(row.poinVideo)} poin</span>
                 </div>
               )}
-              {row.kreditVideo > 0 && (
+              {row.kreditMedsos > 0 && (
                 <div className="flex justify-between gap-3">
-                  <span>Views video media sosial</span>
-                  <span className="tnum font-semibold">+{nf.format(row.kreditVideo)} kredit</span>
+                  <span>Engagement media sosial</span>
+                  <span className="tnum font-semibold">{nf.format(row.kreditMedsos)}</span>
+                </div>
+              )}
+              {row.kreditVideoWeb > 0 && (
+                <div className="flex justify-between gap-3">
+                  <span>Views video on-site</span>
+                  <span className="tnum font-semibold">+{nf.format(row.kreditVideoWeb)} viewers web</span>
                 </div>
               )}
               <div className="flex justify-between gap-3 pt-1 mt-1 border-t" style={{ borderColor: "#E3EDE8" }}>

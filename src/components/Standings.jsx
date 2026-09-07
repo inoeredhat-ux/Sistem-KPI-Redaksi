@@ -44,10 +44,13 @@ export default function Standings({ results, articles, totals, range, onOpen }) 
           <div className="flex-1" />
           <div className="hidden sm:flex items-center gap-3 text-[11px]" style={{ color: SLATE }}>
             <span className="flex items-center gap-1.5">
-              <span style={{ width: 10, height: 10, background: GREEN, borderRadius: 2 }} /> viewers
+              <span style={{ width: 10, height: 10, background: GREEN, borderRadius: 2 }} /> web
             </span>
             <span className="flex items-center gap-1.5">
-              <span style={{ width: 10, height: 10, background: GREEN, opacity: 0.42, borderRadius: 2 }} /> produktivitas
+              <span style={{ width: 10, height: 10, background: GREEN, opacity: 0.68, borderRadius: 2 }} /> medsos
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span style={{ width: 10, height: 10, background: GREEN, opacity: 0.34, borderRadius: 2 }} /> produktivitas
             </span>
             <span className="flex items-center gap-1.5">
               <span style={{ width: 2, height: 11, background: INK }} /> ambang 110%
@@ -59,11 +62,11 @@ export default function Standings({ results, articles, totals, range, onOpen }) 
           <table className="w-full text-[13px]">
             <thead>
               <tr className="text-left" style={{ background: "#FAFBFC" }}>
-                {["", "Nama", "Komposisi skor", "Artikel", "Kredit viewers", "Grade", "Reward"].map((h, i) => (
+                {["", "Nama", "Komposisi skor", "Artikel", "Viewers web", "Medsos", "Grade", "Reward"].map((h, i) => (
                   <th
                     key={i}
                     className="px-3 py-2 text-[10px] font-semibold tracking-[0.1em] uppercase whitespace-nowrap"
-                    style={{ color: SLATE, textAlign: i >= 3 && i <= 4 ? "right" : "left" }}
+                    style={{ color: SLATE, textAlign: i >= 3 && i <= 5 ? "right" : "left" }}
                   >
                     {h}
                   </th>
@@ -86,9 +89,10 @@ export default function Standings({ results, articles, totals, range, onOpen }) 
                     <div className="text-[11px] mt-0.5" style={{ color: SLATE }}>{r.role}</div>
                   </td>
                   <td className="px-3 py-2.5 min-w-[220px] w-[34%]">
-                    <ScoreBar vPart={r.vPart} pPart={r.pPart} score={r.score} />
+                    <ScoreBar vPart={r.vPart} mPart={r.mPart} pPart={r.pPart} score={r.score} />
                     <div className="mt-1 flex gap-3 text-[10.5px] tnum" style={{ color: SLATE }}>
-                      <span>views {pct(r.pViews)}</span>
+                      <span>web {pct(r.pViews)}</span>
+                      {r.pakaiMedsos && <span>medsos {pct(r.pMedsos)}</span>}
                       <span>prod {pct(r.pProd)}</span>
                     </div>
                   </td>
@@ -99,6 +103,16 @@ export default function Standings({ results, articles, totals, range, onOpen }) 
                   <td className="px-3 py-2.5 text-right tnum whitespace-nowrap">
                     {nf.format(r.credit)}
                     <span className="text-[11px]" style={{ color: SLATE }}> / {nf.format(Math.round(r.tViews))}</span>
+                  </td>
+                  <td className="px-3 py-2.5 text-right tnum whitespace-nowrap">
+                    {r.pakaiMedsos ? (
+                      <>
+                        {nf.format(r.kreditMedsos)}
+                        <span className="text-[11px]" style={{ color: SLATE }}> / {nf.format(Math.round(r.tMedsos))}</span>
+                      </>
+                    ) : (
+                      <span style={{ color: "#C3CAD6" }}>—</span>
+                    )}
                   </td>
                   <td className="px-3 py-2.5"><GradePill g={r.grade} /></td>
                   <td className="px-3 py-2.5 whitespace-nowrap tnum" style={{ color: r.reward ? GREEN : SLATE }}>

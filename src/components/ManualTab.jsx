@@ -106,7 +106,8 @@ export default function ManualTab({
                 <Head span={1}>&nbsp;</Head>
                 <Head span={1}>Indepth</Head>
                 <Head span={4}>Jumlah video diproduksi</Head>
-                <Head span={5}>Views video per platform</Head>
+                <Head span={1}>Web</Head>
+                <Head span={4}>Views media sosial</Head>
                 <Head span={2}>Hasil</Head>
                 <Head span={1}>&nbsp;</Head>
               </tr>

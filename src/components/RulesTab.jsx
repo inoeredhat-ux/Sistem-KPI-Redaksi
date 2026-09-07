@@ -8,7 +8,8 @@ import { rupiah } from "../lib/format.js";
 import { Btn, GradePill } from "./ui.jsx";
 
 const FIELDS = [
-  ["wViews", "Bobot viewers"],
+  ["wViews", "Bobot viewers (web + medsos)"],
+  ["wMedsos", "  di antaranya untuk engagement medsos"],
   ["wProd", "Bobot produktivitas"],
   ["cWriter", "Kredit untuk penulis"],
   ["cEditor", "Kredit untuk editor"],
@@ -56,9 +57,19 @@ export default function RulesTab({ params, setParams, targets, setTargets, poin,
           </label>
         </div>
 
-        <div className="mt-4 pt-4 border-t text-[12px] leading-relaxed" style={{ borderColor: "#EEF1F5", color: SLATE }}>
-          Bobot viewers dan produktivitas harus berjumlah 100%. Begitu pula kredit penulis dan editor. Batas maksimum
-          menjaga agar satu artikel viral tidak memborong seluruh pool reward.
+        <div className="mt-4 pt-4 border-t text-[12px] leading-relaxed space-y-2" style={{ borderColor: "#EEF1F5", color: SLATE }}>
+          <p>
+            Bobot viewers dan produktivitas harus berjumlah 100%. Bobot medsos diambil dari porsi viewers,
+            bukan ditambahkan di luarnya.
+          </p>
+          <p>
+            Jabatan yang punya target medsos memakai{" "}
+            <b style={{ color: INK }}>
+              {Math.round((params.wViews - (params.wMedsos || 0)) * 100)}% web + {Math.round((params.wMedsos || 0) * 100)}% medsos + {Math.round(params.wProd * 100)}% produktivitas
+            </b>
+            . Jabatan tanpa target medsos memakai{" "}
+            <b style={{ color: INK }}>{Math.round(params.wViews * 100)}% web + {Math.round(params.wProd * 100)}% produktivitas</b>.
+          </p>
         </div>
       </div>
 
@@ -67,7 +78,7 @@ export default function RulesTab({ params, setParams, targets, setTargets, poin,
         <table className="w-full mt-3.5 text-[13px]">
           <thead>
             <tr>
-              {["Jabatan", "Artikel", "Viewers"].map((h, i) => (
+              {["Jabatan", "Artikel", "Viewers web", "Target medsos"].map((h, i) => (
                 <th key={h} className="pb-2 text-[10px] font-semibold tracking-[0.1em] uppercase"
                   style={{ color: SLATE, textAlign: i ? "right" : "left" }}>{h}</th>
               ))}
@@ -85,12 +96,23 @@ export default function RulesTab({ params, setParams, targets, setTargets, poin,
                 <td className="py-2 text-right pl-2">
                   <input type="number" step="5000" value={targets[r].views}
                     onChange={(e) => setTargets((t) => ({ ...t, [r]: { ...t[r], views: +e.target.value || 0 } }))}
-                    className="w-28 rounded border px-2 py-1 text-right text-[13px] tnum" style={{ borderColor: LINE }} />
+                    className="w-24 rounded border px-2 py-1 text-right text-[13px] tnum" style={{ borderColor: LINE }} />
+                </td>
+                <td className="py-2 text-right pl-2">
+                  <input type="number" step="5000" value={targets[r].medsos || 0}
+                    onChange={(e) => setTargets((t) => ({ ...t, [r]: { ...t[r], medsos: +e.target.value || 0 } }))}
+                    className="w-24 rounded border px-2 py-1 text-right text-[13px] tnum"
+                    style={{ borderColor: LINE, color: (targets[r].medsos || 0) ? INK : "#A6AEBC" }} />
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
+
+        <div className="mt-2 text-[11.5px] leading-relaxed" style={{ color: SLATE }}>
+          Target medsos 0 berarti jabatan itu tidak dinilai dari media sosial, dan bobot viewers-nya
+          kembali penuh ke web.
+        </div>
 
         <div className="mt-5 font-semibold text-[14px]">Tabel grade</div>
         <div className="mt-2.5 space-y-1">

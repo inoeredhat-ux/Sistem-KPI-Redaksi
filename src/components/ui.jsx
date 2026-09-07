@@ -69,17 +69,22 @@ export function GradePill({ g }) {
  * Segmen pekat = sumbangan viewers, segmen pudar = sumbangan produktivitas.
  * Garis vertikal menandai ambang 100% dan 110%.
  */
-export function ScoreBar({ vPart, pPart, score }) {
+export function ScoreBar({ vPart, mPart = 0, pPart, score }) {
   const SCALE = 2.0;
   const w = (x) => Math.min(x / SCALE, 1) * 100;
   const g = gradeOf(score);
   const col = g.grade === "D" ? RED : g.grade === "C" ? AMBER : GREEN;
   return (
     <div className="relative h-[26px] w-full rounded-[3px] overflow-hidden" style={{ background: "#EDF0F4" }}>
+      {/* pekat = viewers web · sedang = engagement medsos · pudar = produktivitas */}
       <div className="absolute inset-y-0 left-0" style={{ width: `${w(vPart)}%`, background: col }} />
       <div
         className="absolute inset-y-0"
-        style={{ left: `${w(vPart)}%`, width: `${w(pPart)}%`, background: col, opacity: 0.42 }}
+        style={{ left: `${w(vPart)}%`, width: `${w(mPart)}%`, background: col, opacity: 0.68 }}
+      />
+      <div
+        className="absolute inset-y-0"
+        style={{ left: `${w(vPart + mPart)}%`, width: `${w(pPart)}%`, background: col, opacity: 0.34 }}
       />
       {[1, 1.1].map((m) => (
         <div
