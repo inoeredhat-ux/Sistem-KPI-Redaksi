@@ -57,7 +57,7 @@ export function exportLaporan({
   totals, report, notes, periodLabel, topViewer, recap,
   manual: manualData = {}, poin: poinData = {}, faktor: faktorData = {},
 }) {
-  const NC = 16;
+  const NC = 19;
   const wb = XLSX.utils.book_new();
   const A = [];
   const push = (arr) => A.push([...arr, ...Array(Math.max(0, NC - arr.length)).fill("")]);
@@ -68,9 +68,9 @@ export function exportLaporan({
   push([]);
   push([
     "No", "Karyawan", "Jabatan", "Disunting", "Ditulis", "Dihitung",
-    "Target Produktivitas", "% Produktivitas", "Kredit Viewers", "Target Viewers",
-    "% Viewers", `Skor KPI (${Math.round(params.wViews * 100)}/${Math.round(params.wProd * 100)})`,
-    "Grade", "Keterangan", "Reward (Rp)", "Catatan",
+    "Target Produktivitas", "% Produktivitas", "Viewers Web", "Target Web",
+    "% Web", "Engagement Medsos", "Target Medsos", "% Medsos",
+    "Skor KPI", "Grade", "Keterangan", "Reward (Rp)", "Catatan",
   ]);
 
   const HEAD = A.length;
@@ -79,6 +79,8 @@ export function exportLaporan({
     push([
       i + 1, r.name, r.role, r.ne || "", r.nw || "", r.count,
       Math.round(r.tProd), r.pProd, r.credit, Math.round(r.tViews), r.pViews,
+      r.pakaiMedsos ? r.kreditMedsos : "", r.pakaiMedsos ? Math.round(r.tMedsos) : "",
+      r.pakaiMedsos ? r.pMedsos : "",
       r.score, r.grade, r.label.toUpperCase(), r.reward, notes[r.name] || "",
     ]);
   });
@@ -95,6 +97,7 @@ export function exportLaporan({
   push([
     "Total Keseluruhan", "", "", sum("ne"), sum("nw"), cntSum, Math.round(tProdSum),
     pProdT, crSum, Math.round(tViewSum), pViewT,
+    sum("kreditMedsos"), "", "",
     params.wViews * pViewT + params.wProd * pProdT, "", "SKOR REDAKSI", recap.tierTotal, "",
   ]);
   const TOTROW = A.length;
@@ -107,7 +110,7 @@ export function exportLaporan({
     ]);
     BONUSROW = A.length;
   }
-  push([`GRAND TOTAL REWARD ${periodLabel}`, "", "", "", "", "", "", "", "", "", "", "", "", "", recap.grand, ""]);
+  push([`GRAND TOTAL REWARD ${periodLabel}`, "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", recap.grand, ""]);
   const GRANDROW = A.length;
 
   push([]);
@@ -128,18 +131,19 @@ export function exportLaporan({
   const ws = XLSX.utils.aoa_to_sheet(A);
   ws["!cols"] = [
     { wch: 5 }, { wch: 24 }, { wch: 19 }, { wch: 10 }, { wch: 9 }, { wch: 10 },
-    { wch: 13 }, { wch: 13 }, { wch: 14 }, { wch: 13 }, { wch: 11 }, { wch: 13 },
-    { wch: 7 }, { wch: 18 }, { wch: 14 }, { wch: 30 },
+    { wch: 13 }, { wch: 13 }, { wch: 13 }, { wch: 12 }, { wch: 9 },
+    { wch: 15 }, { wch: 13 }, { wch: 10 },
+    { wch: 11 }, { wch: 7 }, { wch: 18 }, { wch: 14 }, { wch: 30 },
   ];
 
   const at = (r, c) => XLSX.utils.encode_cell({ r: r - 1, c });
   for (let r = FIRST; r <= TOTROW; r++) {
-    [7, 10, 11].forEach((c) => { const k = at(r, c); if (ws[k]) ws[k].z = "0.0%"; });
-    [3, 4, 5, 6, 8, 9, 14].forEach((c) => { const k = at(r, c); if (ws[k]) ws[k].z = "#,##0"; });
+    [7, 10, 13, 14].forEach((c) => { const k = at(r, c); if (ws[k]) ws[k].z = "0.0%"; });
+    [3, 4, 5, 6, 8, 9, 11, 12, 17].forEach((c) => { const k = at(r, c); if (ws[k]) ws[k].z = "#,##0"; });
   }
   [BONUSROW, GRANDROW].forEach((r) => {
     if (!r) return;
-    const k = at(r, 14);
+    const k = at(r, 17);
     if (ws[k]) ws[k].z = MONEY;
   });
 
@@ -148,8 +152,8 @@ export function exportLaporan({
     { s: { r: 1, c: 0 }, e: { r: 1, c: NC - 1 } },
     { s: { r: 2, c: 0 }, e: { r: 2, c: NC - 1 } },
     { s: { r: TOTROW - 1, c: 0 }, e: { r: TOTROW - 1, c: 2 } },
-    { s: { r: GRANDROW - 1, c: 0 }, e: { r: GRANDROW - 1, c: 13 } },
-    { s: { r: CLOSEROW - 1, c: 1 }, e: { r: CLOSEROW - 1, c: 13 } },
+    { s: { r: GRANDROW - 1, c: 0 }, e: { r: GRANDROW - 1, c: 16 } },
+    { s: { r: CLOSEROW - 1, c: 1 }, e: { r: CLOSEROW - 1, c: 16 } },
     { s: { r: DATEROW - 1, c: 8 }, e: { r: DATEROW - 1, c: 11 } },
     ...[ROLEROW, NAMEROW, TITLEROW].flatMap((r) => [
       { s: { r: r - 1, c: 1 }, e: { r: r - 1, c: 2 } },
@@ -157,7 +161,7 @@ export function exportLaporan({
       { s: { r: r - 1, c: 8 }, e: { r: r - 1, c: 9 } },
     ]),
   ];
-  if (BONUSROW) ws["!merges"].push({ s: { r: BONUSROW - 1, c: 0 }, e: { r: BONUSROW - 1, c: 13 } });
+  if (BONUSROW) ws["!merges"].push({ s: { r: BONUSROW - 1, c: 0 }, e: { r: BONUSROW - 1, c: 16 } });
   ws["!freeze"] = { xSplit: 3, ySplit: HEAD };
   XLSX.utils.book_append_sheet(wb, ws, `KPI ${periodLabel}`.slice(0, 31));
 

@@ -1,6 +1,7 @@
 import {
   EDITOR_ROLES, DEFAULT_TARGETS, TIERS,
   DEFAULT_VIDEO_POIN, DEFAULT_VIDEO_FAKTOR, MANUAL_KOSONG,
+  PLATFORM_MEDSOS, PLATFORM_WEB,
 } from "./constants.js";
 import { gradeOf } from "./format.js";
 
@@ -65,7 +66,6 @@ export function computeResults({
   const alihkan = params.alihkanKreditPenulis !== false;
 
   articles.forEach((a) => {
-    // penulis yang tidak dinilai (mis. byline Advertorial) tidak punya baris sendiri
     const penulisDilewati = !a.author || roster[a.author] === "Tidak dinilai";
 
     if (a.author) {
@@ -84,7 +84,6 @@ export function computeResults({
     }
   });
 
-  // pastikan orang yang hanya punya entri manual tetap muncul
   Object.keys(manual).forEach((n) => {
     if (roster[n] && roster[n] !== "Tidak dinilai") touch(n);
   });
@@ -98,39 +97,59 @@ export function computeResults({
       const tProd = Math.max(tg.prod * ratio, 1);
       const tViews = Math.max(tg.views * ratio, 1);
 
+      // Jabatan yang dinilai dari media sosial ditandai oleh target medsos > 0.
+      const pakaiMedsos = (tg.medsos || 0) > 0;
+      const tMedsos = Math.max((tg.medsos || 0) * ratio, 1);
+
       const m = { ...MANUAL_KOSONG, ...(manual[p.name] || {}) };
 
-      // --- produktivitas ---
+      // ---------- produktivitas ----------
       const dasar = EDITOR_ROLES.includes(role) ? p.ne : p.nw;
       const poinIndepth = m.ind * (poin.indepth ?? 1);
       const poinVideo =
         m.reels * poin.reels + m.pkg * poin.pkg + m.live * poin.live + m.vind * poin.vind;
       const count = dasar + poinIndepth + poinVideo;
 
-      // --- kredit viewers ---
+      // ---------- viewers web ----------
       const kreditArtikel = Math.round(
         params.cWriter * p.vw + params.cEditor * p.ve + params.cWriter * p.veAlih
       );
-      const kreditVideo = Math.round(
-        m.onsite * faktor.onsite + m.yt * faktor.yt +
-        m.tt * faktor.tt + m.ig * faktor.ig + m.fb * faktor.fb
+      // video yang tayang di properti sendiri tetap dihitung sebagai viewers web
+      const kreditVideoWeb = Math.round(
+        PLATFORM_WEB.reduce((t, pl) => t + (m[pl.k] || 0) * (faktor[pl.k] ?? 1), 0)
       );
-      const credit = kreditArtikel + kreditVideo;
+      const credit = kreditArtikel + kreditVideoWeb;
+
+      // ---------- engagement medsos ----------
+      const kreditMedsos = Math.round(
+        PLATFORM_MEDSOS.reduce((t, pl) => t + (m[pl.k] || 0) * (faktor[pl.k] ?? 1), 0)
+      );
+
+      // ---------- skor ----------
+      const wMed = pakaiMedsos ? (params.wMedsos ?? 0) : 0;
+      const wWeb = params.wViews - wMed;
 
       const pProd = Math.min(count / tProd, params.cap);
       const pViews = Math.min(credit / tViews, params.cap);
-      const score = params.wViews * pViews + params.wProd * pProd;
+      const pMedsos = pakaiMedsos ? Math.min(kreditMedsos / tMedsos, params.cap) : 0;
+
+      const score = wWeb * pViews + wMed * pMedsos + params.wProd * pProd;
       const g = gradeOf(score);
 
       return {
         ...p,
         role, count, credit, tProd, tViews, pProd, pViews, score,
-        dasar, poinIndepth, poinVideo, kreditArtikel, kreditVideo,
+        pakaiMedsos, kreditMedsos, tMedsos, pMedsos,
+        dasar, poinIndepth, poinVideo, kreditArtikel,
+        kreditVideoWeb,
+        kreditVideo: kreditVideoWeb + kreditMedsos,
         nVideo: m.reels + m.pkg + m.live + m.vind,
         nIndepth: m.ind,
-        adaManual: poinIndepth + poinVideo + kreditVideo > 0,
-        vPart: params.wViews * pViews,
+        adaManual: poinIndepth + poinVideo + kreditVideoWeb + kreditMedsos > 0,
+        vPart: wWeb * pViews,
+        mPart: wMed * pMedsos,
         pPart: params.wProd * pProd,
+        bobotWeb: wWeb, bobotMedsos: wMed,
         grade: g.grade, label: g.label, reward: g.reward,
       };
     })

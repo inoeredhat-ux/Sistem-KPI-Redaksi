@@ -17,11 +17,17 @@ export const ROLES = [
 /** Jabatan yang produktivitasnya dihitung dari artikel yang disunting, bukan yang ditulis. */
 export const EDITOR_ROLES = ["Redaktur Pelaksana", "Redaktur", "Sekretaris Redaksi"];
 
+/**
+ * Target bulanan per jabatan.
+ *   views  = target viewers web (artikel inilah.com + video on-site)
+ *   medsos = target engagement media sosial. Nol berarti jabatan itu tidak
+ *            dinilai dari media sosial, dan bobotnya kembali penuh ke viewers web.
+ */
 export const DEFAULT_TARGETS = {
-  "Redaktur Pelaksana": { prod: 350, views: 250000 },
-  Redaktur: { prod: 350, views: 250000 },
-  Reporter: { prod: 200, views: 200000 },
-  "Sekretaris Redaksi": { prod: 175, views: 150000 },
+  "Redaktur Pelaksana": { prod: 350, views: 250000, medsos: 0 },
+  Redaktur: { prod: 350, views: 250000, medsos: 0 },
+  Reporter: { prod: 200, views: 120000, medsos: 150000 },
+  "Sekretaris Redaksi": { prod: 175, views: 150000, medsos: 0 },
 };
 
 export const DEFAULT_PARAMS = {
@@ -30,6 +36,13 @@ export const DEFAULT_PARAMS = {
   cWriter: 0.6,
   cEditor: 0.4,
   cap: 2,
+  /**
+   * Bobot engagement media sosial, diambil dari porsi viewers.
+   * Jabatan yang punya target medsos memakai:
+   *   (wViews - wMedsos) untuk viewers web, lalu wMedsos untuk medsos.
+   * Jabatan tanpa target medsos memakai wViews penuh, seperti skema semula.
+   */
+  wMedsos: 0.15,
   /**
    * Bila penulis sebuah artikel berstatus "Tidak dinilai" — misalnya byline
    * Advertorial — porsi kredit penulis dialihkan ke editor yang menaikkan.
@@ -43,10 +56,10 @@ export const DEFAULT_PARAMS = {
  * Angka ditarik dari estimasi jam kerja, bukan perkiraan kasar.
  */
 export const DEFAULT_VIDEO_POIN = {
-  reels: 3,
-  pkg: 6,
-  live: 8,
-  vind: 12,
+  reels: 1,
+  pkg: 2,
+  live: 3,
+  vind: 4,
   indepth: 1,
 };
 
@@ -70,13 +83,20 @@ export const DEFAULT_VIDEO_FAKTOR = {
   fb: 0.25,
 };
 
+/**
+ * grup "web"   -> masuk komponen Viewers web, karena traffic-nya di rumah sendiri
+ * grup "medsos"-> masuk komponen Engagement medsos
+ */
 export const VIDEO_PLATFORM = [
-  { k: "onsite", label: "Video on-site", ket: "player inilah.com, tonton ≥30 detik" },
-  { k: "yt", label: "YouTube", ket: "tonton ≥30 detik atau ≥50% durasi" },
-  { k: "tt", label: "TikTok", ket: "tuntas atau tonton ≥6 detik" },
-  { k: "ig", label: "Instagram Reels", ket: "tuntas atau tonton ≥6 detik" },
-  { k: "fb", label: "Facebook", ket: "tonton ≥15 detik" },
+  { k: "onsite", label: "Video on-site", ket: "player inilah.com, tonton ≥30 detik", grup: "web" },
+  { k: "yt", label: "YouTube", ket: "tonton ≥30 detik atau ≥50% durasi", grup: "medsos" },
+  { k: "tt", label: "TikTok", ket: "tuntas atau tonton ≥6 detik", grup: "medsos" },
+  { k: "ig", label: "Instagram", ket: "Reels atau video Feed", grup: "medsos" },
+  { k: "fb", label: "Facebook", ket: "tonton ≥15 detik", grup: "medsos" },
 ];
+
+export const PLATFORM_MEDSOS = VIDEO_PLATFORM.filter((p) => p.grup === "medsos");
+export const PLATFORM_WEB = VIDEO_PLATFORM.filter((p) => p.grup === "web");
 
 /** Bentuk kosong satu baris entri manual. */
 export const MANUAL_KOSONG = {
