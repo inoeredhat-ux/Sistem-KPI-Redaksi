@@ -7,15 +7,27 @@ export const SLATE = "#5B677D";
 export const LINE = "#DEE3EB";
 
 export const ROLES = [
+  "Wakil Pemimpin Redaksi",
   "Redaktur Pelaksana",
   "Redaktur",
+  "Asisten Redaksi",
   "Reporter",
   "Sekretaris Redaksi",
   "Tidak dinilai",
 ];
 
 /** Jabatan yang produktivitasnya dihitung dari artikel yang disunting, bukan yang ditulis. */
-export const EDITOR_ROLES = ["Redaktur Pelaksana", "Redaktur", "Sekretaris Redaksi"];
+/**
+ * Cadangan lama: dipakai hanya bila sebuah jabatan belum punya kolom `basis`
+ * di tabel target. Sejak ada kolom itu, dasar produktivitas ditentukan di sana.
+ */
+export const EDITOR_ROLES = ["Wakil Pemimpin Redaksi", "Redaktur Pelaksana", "Redaktur", "Sekretaris Redaksi"];
+
+/** Dasar penghitungan produktivitas. */
+export const BASIS = [
+  { k: "sunting", label: "Artikel disunting" },
+  { k: "tulis", label: "Artikel ditulis" },
+];
 
 /**
  * Target bulanan per jabatan.
@@ -23,11 +35,25 @@ export const EDITOR_ROLES = ["Redaktur Pelaksana", "Redaktur", "Sekretaris Redak
  *   medsos = target engagement media sosial. Nol berarti jabatan itu tidak
  *            dinilai dari media sosial, dan bobotnya kembali penuh ke viewers web.
  */
+/**
+ *   views        = target viewers web (artikel inilah.com + video on-site)
+ *   medsos       = target engagement media sosial. Nol berarti jabatan itu tidak
+ *                  dinilai dari media sosial, bobotnya kembali penuh ke viewers web.
+ *   masukLaporan = false berarti tetap dihitung dan tampil di klasemen, tetapi
+ *                  tidak ikut laporan resmi, rekap reward, maupun statistik agregat.
+ *                  Dipakai untuk jabatan yang penilaiannya diatur terpisah.
+ *   basis        = dasar produktivitas: "sunting" memakai jumlah artikel yang
+ *                  disunting, "tulis" memakai jumlah artikel yang ditulis.
+ */
 export const DEFAULT_TARGETS = {
-  "Redaktur Pelaksana": { prod: 350, views: 250000, medsos: 0 },
-  Redaktur: { prod: 350, views: 250000, medsos: 0 },
-  Reporter: { prod: 200, views: 120000, medsos: 150000 },
-  "Sekretaris Redaksi": { prod: 175, views: 150000, medsos: 0 },
+  "Wakil Pemimpin Redaksi": { prod: 350, views: 250000, medsos: 0, basis: "sunting", masukLaporan: false },
+  "Redaktur Pelaksana": { prod: 350, views: 250000, medsos: 0, basis: "sunting", masukLaporan: true },
+  Redaktur: { prod: 350, views: 250000, medsos: 0, basis: "sunting", masukLaporan: true },
+  // Jabatan peralihan dari reporter: masih menulis dan memproduksi video,
+  // sambil mulai menyunting. Dasar produktivitas bisa diubah di tab Aturan.
+  "Asisten Redaksi": { prod: 250, views: 180000, medsos: 75000, basis: "tulis", masukLaporan: true },
+  Reporter: { prod: 200, views: 120000, medsos: 150000, basis: "tulis", masukLaporan: true },
+  "Sekretaris Redaksi": { prod: 175, views: 150000, medsos: 0, basis: "sunting", masukLaporan: true },
 };
 
 export const DEFAULT_PARAMS = {

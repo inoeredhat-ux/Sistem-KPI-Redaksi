@@ -18,7 +18,7 @@ const REDIS_TOKEN =
   process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
 
 const KEY = "kpi-redaksi:settings";
-const MAX_BYTES = 512 * 1024; // 512 KB, jauh di atas kebutuhan wajar
+const MAX_BYTES = 2 * 1024 * 1024; // 2 MB — entri manual bertambah tiap periode
 
 async function redis(command) {
   const r = await fetch(REDIS_URL, {
@@ -34,15 +34,13 @@ async function redis(command) {
 }
 
 /** Pastikan yang dikirim memang berbentuk pengaturan, bukan sembarang data. */
+const SIMPAN = ["roster", "params", "targets", "report", "poin", "faktor", "manual"];
+
 function valid(body) {
   if (!body || typeof body !== "object") return false;
-  const keys = ["roster", "params", "targets", "report"];
-  if (!keys.some((k) => k in body)) return false;
-  if (body.roster && typeof body.roster !== "object") return false;
-  if (body.params && typeof body.params !== "object") return false;
-  if (body.targets && typeof body.targets !== "object") return false;
-  if (body.report && typeof body.report !== "object") return false;
-  return true;
+  if (!SIMPAN.some((k) => k in body)) return false;
+  // semua bagian yang dikenali harus berbentuk objek
+  return SIMPAN.every((k) => !body[k] || typeof body[k] === "object");
 }
 
 export default async function handler(req, res) {
@@ -73,10 +71,7 @@ export default async function handler(req, res) {
       }
 
       const payload = {
-        roster: body.roster || {},
-        params: body.params || {},
-        targets: body.targets || {},
-        report: body.report || {},
+        ...Object.fromEntries(SIMPAN.map((k) => [k, body[k] || {}])),
         updatedAt: new Date().toISOString(),
         updatedBy: String(body.updatedBy || "").slice(0, 60) || "tanpa nama",
       };

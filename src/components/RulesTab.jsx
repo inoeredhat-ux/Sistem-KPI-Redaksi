@@ -2,7 +2,7 @@ import React from "react";
 import { Check, RotateCcw } from "lucide-react";
 import {
   SLATE, LINE, INK, TIERS, DEFAULT_PARAMS, DEFAULT_TARGETS,
-  DEFAULT_VIDEO_POIN, DEFAULT_VIDEO_FAKTOR, VIDEO_JENIS, VIDEO_PLATFORM,
+  DEFAULT_VIDEO_POIN, DEFAULT_VIDEO_FAKTOR, VIDEO_JENIS, VIDEO_PLATFORM, BASIS,
 } from "../lib/constants.js";
 import { rupiah } from "../lib/format.js";
 import { Btn, GradePill } from "./ui.jsx";
@@ -78,7 +78,7 @@ export default function RulesTab({ params, setParams, targets, setTargets, poin,
         <table className="w-full mt-3.5 text-[13px]">
           <thead>
             <tr>
-              {["Jabatan", "Artikel", "Viewers web", "Target medsos"].map((h, i) => (
+              {["Jabatan", "Dasar produktivitas", "Artikel", "Viewers web", "Target medsos", "Laporan"].map((h, i) => (
                 <th key={h} className="pb-2 text-[10px] font-semibold tracking-[0.1em] uppercase"
                   style={{ color: SLATE, textAlign: i ? "right" : "left" }}>{h}</th>
               ))}
@@ -104,14 +104,33 @@ export default function RulesTab({ params, setParams, targets, setTargets, poin,
                     className="w-24 rounded border px-2 py-1 text-right text-[13px] tnum"
                     style={{ borderColor: LINE, color: (targets[r].medsos || 0) ? INK : "#A6AEBC" }} />
                 </td>
+                <td className="py-2 text-center pl-2">
+                  <input type="checkbox"
+                    checked={targets[r].masukLaporan !== false}
+                    onChange={(e) => setTargets((t) => ({ ...t, [r]: { ...t[r], masukLaporan: e.target.checked } }))}
+                    style={{ accentColor: INK }}
+                    title="Centang berarti jabatan ini ikut laporan resmi dan rekap reward" />
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
 
-        <div className="mt-2 text-[11.5px] leading-relaxed" style={{ color: SLATE }}>
-          Target medsos 0 berarti jabatan itu tidak dinilai dari media sosial, dan bobot viewers-nya
-          kembali penuh ke web.
+        <div className="mt-2 text-[11.5px] leading-relaxed space-y-1" style={{ color: SLATE }}>
+          <p>
+            Target medsos 0 berarti jabatan itu tidak dinilai dari media sosial, dan bobot viewers-nya
+            kembali penuh ke web.
+          </p>
+          <p>
+            Kolom Laporan yang tidak dicentang membuat jabatan itu tetap dihitung dan tampil di klasemen,
+            tetapi tidak ikut laporan resmi, rekap reward, maupun kartu statistik.
+          </p>
+          <p>
+            Dasar produktivitas menentukan angka mana yang dibandingkan dengan target artikel.
+            Jabatan penyunting biasanya memakai artikel disunting, jabatan penulis memakai artikel ditulis.
+            Untuk jabatan peralihan seperti Asisten Redaksi, pilih sesuai porsi kerja yang sebenarnya —
+            selisihnya besar terhadap skor akhir.
+          </p>
         </div>
 
         <div className="mt-5 font-semibold text-[14px]">Tabel grade</div>

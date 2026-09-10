@@ -23,19 +23,24 @@ export default function ManualTab({
   results, manual, setManual, periodKey, periodLabel, poin, faktor, onSave,
 }) {
   const [hanyaTerisi, setHanyaTerisi] = useState(false);
+  const [belumSimpan, setBelumSimpan] = useState(false);
 
-  const set = (nama, key, val) =>
+  const set = (nama, key, val) => {
+    setBelumSimpan(true);
     setManual((p) => ({
       ...p,
       [nama]: { ...MANUAL_KOSONG, ...(p[nama] || {}), [key]: val },
     }));
+  };
 
-  const kosongkan = (nama) =>
-    setManual((p) => {
+  const kosongkan = (nama) => {
+    setBelumSimpan(true);
+    return setManual((p) => {
       const next = { ...p };
       delete next[nama];
       return next;
     });
+  };
 
   const baris = useMemo(() => {
     const l = results.map((r) => ({ r, m: { ...MANUAL_KOSONG, ...(manual[r.name] || {}) } }));
@@ -81,9 +86,19 @@ export default function ManualTab({
               />
               Hanya yang terisi
             </label>
-            <Btn size="sm" variant="solid" onClick={onSave}><Check size={13} /> Simpan</Btn>
+            <Btn size="sm" variant="solid" onClick={() => { onSave(); setBelumSimpan(false); }}>
+              <Check size={13} /> Simpan
+            </Btn>
           </div>
         </div>
+
+        {belumSimpan && (
+          <div className="mt-3 rounded px-3 py-2 text-[12.5px] font-medium"
+            style={{ background: "#FFF4E5", color: "#8A5A00" }}>
+            Ada perubahan yang belum disimpan. Tekan Simpan agar tersimpan di server dan terbaca
+            dari perangkat lain.
+          </div>
+        )}
 
         <div className="mt-3 pt-3 border-t flex flex-wrap gap-x-6 gap-y-1 text-[12px]" style={{ borderColor: "#EEF1F5" }}>
           <span style={{ color: SLATE }}>
