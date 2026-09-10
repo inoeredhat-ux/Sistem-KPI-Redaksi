@@ -80,9 +80,21 @@ export default function RulesTab({ params, setParams, targets, setTargets, poin,
         <table className="w-full mt-3.5 text-[13px]">
           <thead>
             <tr>
-              {["Jabatan", "Dasar produktivitas", "Artikel", "Viewers web", "Target medsos", "Laporan"].map((h, i) => (
-                <th key={h} className="pb-2 text-[10px] font-semibold tracking-[0.1em] uppercase"
-                  style={{ color: SLATE, textAlign: i ? "right" : "left" }}>{h}</th>
+              {[
+                { t: "Jabatan", a: "left" },
+                { t: "Dasar produktivitas", a: "center" },
+                { t: "Artikel", a: "center" },
+                { t: "Viewers web", a: "center" },
+                { t: "Target medsos", a: "center" },
+                { t: "Laporan", a: "center" },
+              ].map((h) => (
+                <th
+                  key={h.t}
+                  className="pb-2 px-1.5 text-[10px] font-semibold tracking-[0.08em] uppercase align-bottom"
+                  style={{ color: SLATE, textAlign: h.a, whiteSpace: "nowrap" }}
+                >
+                  {h.t}
+                </th>
               ))}
             </tr>
           </thead>
@@ -96,24 +108,37 @@ export default function RulesTab({ params, setParams, targets, setTargets, poin,
               })
               .map((r) => (
               <tr key={r} className="border-t" style={{ borderColor: "#F0F2F6" }}>
-                <td className="py-2 pr-2">{r}</td>
-                <td className="py-2 text-right">
+                <td className="py-2 pr-2 align-middle">{r}</td>
+                <td className="py-2 px-1.5 text-center align-middle">
+                  <select
+                    value={targets[r].basis || "tulis"}
+                    onChange={(e) => setTargets((t) => ({ ...t, [r]: { ...t[r], basis: e.target.value } }))}
+                    className="rounded border px-2 py-1 text-[12.5px] bg-white"
+                    style={{ borderColor: LINE }}
+                    title="Jumlah artikel mana yang dibandingkan dengan target"
+                  >
+                    {BASIS.map((b) => (
+                      <option key={b.k} value={b.k}>{b.label}</option>
+                    ))}
+                  </select>
+                </td>
+                <td className="py-2 px-1.5 text-center align-middle">
                   <input type="number" value={targets[r].prod}
                     onChange={(e) => setTargets((t) => ({ ...t, [r]: { ...t[r], prod: +e.target.value || 0 } }))}
                     className="w-20 rounded border px-2 py-1 text-right text-[13px] tnum" style={{ borderColor: LINE }} />
                 </td>
-                <td className="py-2 text-right pl-2">
+                <td className="py-2 px-1.5 text-center align-middle">
                   <input type="number" step="5000" value={targets[r].views}
                     onChange={(e) => setTargets((t) => ({ ...t, [r]: { ...t[r], views: +e.target.value || 0 } }))}
                     className="w-24 rounded border px-2 py-1 text-right text-[13px] tnum" style={{ borderColor: LINE }} />
                 </td>
-                <td className="py-2 text-right pl-2">
+                <td className="py-2 px-1.5 text-center align-middle">
                   <input type="number" step="5000" value={targets[r].medsos || 0}
                     onChange={(e) => setTargets((t) => ({ ...t, [r]: { ...t[r], medsos: +e.target.value || 0 } }))}
                     className="w-24 rounded border px-2 py-1 text-right text-[13px] tnum"
                     style={{ borderColor: LINE, color: (targets[r].medsos || 0) ? INK : "#A6AEBC" }} />
                 </td>
-                <td className="py-2 text-center pl-2">
+                <td className="py-2 px-1.5 text-center align-middle">
                   <input type="checkbox"
                     checked={targets[r].masukLaporan !== false}
                     onChange={(e) => setTargets((t) => ({ ...t, [r]: { ...t[r], masukLaporan: e.target.checked } }))}
