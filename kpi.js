@@ -99,12 +99,15 @@ export function computeResults({
 
       // Jabatan yang dinilai dari media sosial ditandai oleh target medsos > 0.
       const pakaiMedsos = (tg.medsos || 0) > 0;
+      const masukLaporan = tg.masukLaporan !== false;
       const tMedsos = Math.max((tg.medsos || 0) * ratio, 1);
 
       const m = { ...MANUAL_KOSONG, ...(manual[p.name] || {}) };
 
       // ---------- produktivitas ----------
-      const dasar = EDITOR_ROLES.includes(role) ? p.ne : p.nw;
+      // basis dari tabel target; bila belum ada, pakai daftar lama sebagai cadangan
+      const basis = tg.basis || (EDITOR_ROLES.includes(role) ? "sunting" : "tulis");
+      const dasar = basis === "sunting" ? p.ne : p.nw;
       const poinIndepth = m.ind * (poin.indepth ?? 1);
       const poinVideo =
         m.reels * poin.reels + m.pkg * poin.pkg + m.live * poin.live + m.vind * poin.vind;
@@ -139,7 +142,7 @@ export function computeResults({
       return {
         ...p,
         role, count, credit, tProd, tViews, pProd, pViews, score,
-        pakaiMedsos, kreditMedsos, tMedsos, pMedsos,
+        pakaiMedsos, kreditMedsos, tMedsos, pMedsos, masukLaporan, basis,
         dasar, poinIndepth, poinVideo, kreditArtikel,
         kreditVideoWeb,
         kreditVideo: kreditVideoWeb + kreditMedsos,

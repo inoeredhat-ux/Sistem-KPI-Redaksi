@@ -4,7 +4,7 @@ import { SLATE, LINE, INK, GREEN, AMBER } from "../lib/constants.js";
 import { nf, pct, rupiah, dLabel } from "../lib/format.js";
 import { Stat, GradePill, ScoreBar } from "./ui.jsx";
 
-export default function Standings({ results, articles, totals, range, onOpen }) {
+export default function Standings({ results, articles, totals, range, onOpen, adaDiluarLaporan = 0 }) {
   const [q, setQ] = useState("");
   const filtered = useMemo(
     () => results.filter((r) => r.name.toLowerCase().includes(q.toLowerCase())),
@@ -85,7 +85,18 @@ export default function Standings({ results, articles, totals, range, onOpen }) 
                     {results.indexOf(r) + 1}
                   </td>
                   <td className="px-3 py-2.5 min-w-[150px]">
-                    <div className="font-semibold leading-tight">{r.name}</div>
+                    <div className="font-semibold leading-tight flex items-center gap-1.5">
+                      {r.name}
+                      {!r.masukLaporan && (
+                        <span
+                          className="px-1.5 py-0.5 rounded text-[9.5px] font-semibold whitespace-nowrap"
+                          style={{ background: "#EDF0F4", color: SLATE }}
+                          title="Dihitung dan tampil di sini, tetapi tidak masuk laporan resmi"
+                        >
+                          di luar laporan
+                        </span>
+                      )}
+                    </div>
                     <div className="text-[11px] mt-0.5" style={{ color: SLATE }}>{r.role}</div>
                   </td>
                   <td className="px-3 py-2.5 min-w-[220px] w-[34%]">
@@ -131,6 +142,12 @@ export default function Standings({ results, articles, totals, range, onOpen }) 
       </div>
       <p className="mt-2.5 text-[12px]" style={{ color: SLATE }}>
         Angka setelah garis miring adalah target untuk periode yang dipilih. Klik baris untuk melihat daftar artikel.
+        {adaDiluarLaporan > 0 && (
+          <>
+            {" "}Kartu statistik di atas dan laporan resmi tidak menyertakan {adaDiluarLaporan} orang bertanda
+            {" "}<b>di luar laporan</b>.
+          </>
+        )}
       </p>
     </>
   );

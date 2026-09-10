@@ -63,11 +63,31 @@ export default function App() {
   }, []);
 
   /* ---------- muat pengaturan ---------- */
+  /**
+   * Gabungkan pengaturan tersimpan dengan bawaan.
+   *
+   * Penting: jabatan atau kolom baru yang ditambahkan di versi aplikasi terbaru
+   * harus tetap muncul walau pengaturan lama di server belum mengenalnya.
+   * Nilai yang sudah disimpan pengguna selalu menang; bawaan hanya mengisi
+   * bagian yang belum ada.
+   */
+  const gabungTarget = (tersimpan) => {
+    const out = {};
+    Object.keys(DEFAULT_TARGETS).forEach((k) => {
+      out[k] = { ...DEFAULT_TARGETS[k], ...(tersimpan?.[k] || {}) };
+    });
+    // pertahankan jabatan buatan sendiri yang tidak ada di bawaan
+    Object.keys(tersimpan || {}).forEach((k) => {
+      if (!out[k]) out[k] = { ...tersimpan[k] };
+    });
+    return out;
+  };
+
   const terapkan = useCallback((s) => {
     if (!s) return;
     if (s.roster) setRoster(s.roster);
-    if (s.params && Object.keys(s.params).length) setParams(s.params);
-    if (s.targets && Object.keys(s.targets).length) setTargets(s.targets);
+    if (s.params && Object.keys(s.params).length) setParams({ ...DEFAULT_PARAMS, ...s.params });
+    setTargets(gabungTarget(s.targets));
     if (s.report && Object.keys(s.report).length) setReport({ ...DEFAULT_REPORT, ...s.report });
     if (s.poin && Object.keys(s.poin).length) setPoin({ ...DEFAULT_VIDEO_POIN, ...s.poin });
     if (s.faktor && Object.keys(s.faktor).length) setFaktor({ ...DEFAULT_VIDEO_FAKTOR, ...s.faktor });
@@ -209,7 +229,12 @@ export default function App() {
     () => computeResults({ articles: inRange, roster, targets, params, ratio, manual, poin, faktor }),
     [inRange, roster, targets, params, ratio, manual, poin, faktor]
   );
-  const totals = useMemo(() => summarise(results, inRange), [results, inRange]);
+  // Jabatan dengan masukLaporan=false tetap tampil di klasemen agar bisa memantau
+  // angkanya sendiri, tetapi dikeluarkan dari laporan resmi dan statistik agregat.
+  const resultsLaporan = useMemo(() => results.filter((r) => r.masukLaporan), [results]);
+  const adaDiluarLaporan = results.length - resultsLaporan.length;
+
+  const totals = useMemo(() => summarise(resultsLaporan, inRange), [resultsLaporan, inRange]);
   const names = useMemo(() => collectNames(articles), [articles]);
   const checks = useMemo(
     () => runChecks({ articles: inRange, colMap, results, roster, params }),
@@ -218,10 +243,13 @@ export default function App() {
   const failing = checks.filter((c) => !c.ok).length;
 
   const topViewer = useMemo(
-    () => results.reduce((best, r) => (!best || r.credit > best.credit ? r : best), null),
-    [results]
+    () => resultsLaporan.reduce((best, r) => (!best || r.credit > best.credit ? r : best), null),
+    [resultsLaporan]
   );
-  const recap = useMemo(() => gradeRecap(results, report, topViewer), [results, report, topViewer]);
+  const recap = useMemo(
+    () => gradeRecap(resultsLaporan, report, topViewer),
+    [resultsLaporan, report, topViewer]
+  );
 
   const periodLabel = useMemo(() => {
     if (!range.to) return "";
@@ -232,7 +260,7 @@ export default function App() {
     return `${dLabel(range.from)} – ${dLabel(range.to)}`.toUpperCase();
   }, [range, ratio]);
 
-  const ctx = { results, articles: inRange, range, fileName, params, targets, prorate, ratio, totals, recap };
+  const ctx = { results: resultsLaporan, articles: inRange, range, fileName, params, targets, prorate, ratio, totals, recap };
 
   const copyWA = async () => {
     try {
@@ -405,12 +433,15 @@ export default function App() {
             </div>
 
             {tab === "klasemen" && (
-              <Standings results={results} articles={inRange} totals={totals} range={range} onOpen={setDetail} />
+              <Standings
+                results={results} articles={inRange} totals={totals}
+                range={range} onOpen={setDetail} adaDiluarLaporan={adaDiluarLaporan}
+              />
             )}
 
             {tab === "laporan" && (
               <ReportTab
-                results={results} totals={totals} report={report} setReport={setReport}
+                results={resultsLaporan} totals={totals} report={report} setReport={setReport}
                 notes={notes} setNotes={setNotes} periodLabel={periodLabel} topViewer={topViewer}
                 recap={recap} params={params} onSave={saveAll}
                 onExport={() => {
