@@ -2,7 +2,7 @@ import React from "react";
 import { Check, RotateCcw } from "lucide-react";
 import {
   SLATE, LINE, INK, TIERS, DEFAULT_PARAMS, DEFAULT_TARGETS,
-  DEFAULT_VIDEO_POIN, DEFAULT_VIDEO_FAKTOR, VIDEO_JENIS, VIDEO_PLATFORM, BASIS,
+  DEFAULT_VIDEO_POIN, DEFAULT_VIDEO_FAKTOR, VIDEO_JENIS, VIDEO_PLATFORM, BASIS, ROLES,
 } from "../lib/constants.js";
 import { rupiah } from "../lib/format.js";
 import { Btn, GradePill } from "./ui.jsx";
@@ -85,7 +85,12 @@ export default function RulesTab({ params, setParams, targets, setTargets, poin,
             </tr>
           </thead>
           <tbody>
-            {Object.keys(targets).map((r) => (
+            {Object.keys(targets)
+              .sort((a, b) => {
+                const ia = ROLES.indexOf(a), ib = ROLES.indexOf(b);
+                return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
+              })
+              .map((r) => (
               <tr key={r} className="border-t" style={{ borderColor: "#F0F2F6" }}>
                 <td className="py-2 pr-2">{r}</td>
                 <td className="py-2 text-right">

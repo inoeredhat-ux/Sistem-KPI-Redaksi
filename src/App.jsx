@@ -63,11 +63,31 @@ export default function App() {
   }, []);
 
   /* ---------- muat pengaturan ---------- */
+  /**
+   * Gabungkan pengaturan tersimpan dengan bawaan.
+   *
+   * Penting: jabatan atau kolom baru yang ditambahkan di versi aplikasi terbaru
+   * harus tetap muncul walau pengaturan lama di server belum mengenalnya.
+   * Nilai yang sudah disimpan pengguna selalu menang; bawaan hanya mengisi
+   * bagian yang belum ada.
+   */
+  const gabungTarget = (tersimpan) => {
+    const out = {};
+    Object.keys(DEFAULT_TARGETS).forEach((k) => {
+      out[k] = { ...DEFAULT_TARGETS[k], ...(tersimpan?.[k] || {}) };
+    });
+    // pertahankan jabatan buatan sendiri yang tidak ada di bawaan
+    Object.keys(tersimpan || {}).forEach((k) => {
+      if (!out[k]) out[k] = { ...tersimpan[k] };
+    });
+    return out;
+  };
+
   const terapkan = useCallback((s) => {
     if (!s) return;
     if (s.roster) setRoster(s.roster);
-    if (s.params && Object.keys(s.params).length) setParams(s.params);
-    if (s.targets && Object.keys(s.targets).length) setTargets(s.targets);
+    if (s.params && Object.keys(s.params).length) setParams({ ...DEFAULT_PARAMS, ...s.params });
+    setTargets(gabungTarget(s.targets));
     if (s.report && Object.keys(s.report).length) setReport({ ...DEFAULT_REPORT, ...s.report });
     if (s.poin && Object.keys(s.poin).length) setPoin({ ...DEFAULT_VIDEO_POIN, ...s.poin });
     if (s.faktor && Object.keys(s.faktor).length) setFaktor({ ...DEFAULT_VIDEO_FAKTOR, ...s.faktor });
