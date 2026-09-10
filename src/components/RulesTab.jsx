@@ -17,6 +17,8 @@ const FIELDS = [
 ];
 
 export default function RulesTab({ params, setParams, targets, setTargets, poin, setPoin, faktor, setFaktor, onSave }) {
+  const tersembunyi = Object.keys(targets).filter((r) => targets[r].masukLaporan === false);
+
   return (
     <div className="grid lg:grid-cols-2 gap-4">
       <div className="rounded-lg border bg-white p-5" style={{ borderColor: LINE }}>
@@ -86,6 +88,8 @@ export default function RulesTab({ params, setParams, targets, setTargets, poin,
           </thead>
           <tbody>
             {Object.keys(targets)
+              // jabatan di luar laporan tidak perlu dikonfigurasi di sini
+              .filter((r) => targets[r].masukLaporan !== false)
               .sort((a, b) => {
                 const ia = ROLES.indexOf(a), ib = ROLES.indexOf(b);
                 return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
@@ -130,6 +134,13 @@ export default function RulesTab({ params, setParams, targets, setTargets, poin,
             Kolom Laporan yang tidak dicentang membuat jabatan itu tetap dihitung dan tampil di klasemen,
             tetapi tidak ikut laporan resmi, rekap reward, maupun kartu statistik.
           </p>
+          {tersembunyi.length > 0 && (
+            <p>
+              Tidak ditampilkan di tabel karena penilaiannya diatur terpisah:{" "}
+              <b style={{ color: INK }}>{tersembunyi.join(", ")}</b>. Jabatan ini tetap bisa dipilih di
+              tab Jabatan dan tetap tampil di klasemen, hanya tidak ikut laporan.
+            </p>
+          )}
           <p>
             Dasar produktivitas menentukan angka mana yang dibandingkan dengan target artikel.
             Jabatan penyunting biasanya memakai artikel disunting, jabatan penulis memakai artikel ditulis.
