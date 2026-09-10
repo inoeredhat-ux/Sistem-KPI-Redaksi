@@ -2,7 +2,7 @@ import React from "react";
 import { Check, RotateCcw } from "lucide-react";
 import {
   SLATE, LINE, INK, TIERS, DEFAULT_PARAMS, DEFAULT_TARGETS,
-  DEFAULT_VIDEO_POIN, DEFAULT_VIDEO_FAKTOR, VIDEO_JENIS, VIDEO_PLATFORM,
+  DEFAULT_VIDEO_POIN, DEFAULT_VIDEO_FAKTOR, VIDEO_JENIS, VIDEO_PLATFORM, BASIS, ROLES,
 } from "../lib/constants.js";
 import { rupiah } from "../lib/format.js";
 import { Btn, GradePill } from "./ui.jsx";
@@ -17,6 +17,8 @@ const FIELDS = [
 ];
 
 export default function RulesTab({ params, setParams, targets, setTargets, poin, setPoin, faktor, setFaktor, onSave }) {
+  const tersembunyi = Object.keys(targets).filter((r) => targets[r].masukLaporan === false);
+
   return (
     <div className="grid lg:grid-cols-2 gap-4">
       <div className="rounded-lg border bg-white p-5" style={{ borderColor: LINE }}>
@@ -78,40 +80,98 @@ export default function RulesTab({ params, setParams, targets, setTargets, poin,
         <table className="w-full mt-3.5 text-[13px]">
           <thead>
             <tr>
-              {["Jabatan", "Artikel", "Viewers web", "Target medsos"].map((h, i) => (
-                <th key={h} className="pb-2 text-[10px] font-semibold tracking-[0.1em] uppercase"
-                  style={{ color: SLATE, textAlign: i ? "right" : "left" }}>{h}</th>
+              {[
+                { t: "Jabatan", a: "left" },
+                { t: "Dasar produktivitas", a: "center" },
+                { t: "Artikel", a: "center" },
+                { t: "Viewers web", a: "center" },
+                { t: "Target medsos", a: "center" },
+                { t: "Laporan", a: "center" },
+              ].map((h) => (
+                <th
+                  key={h.t}
+                  className="pb-2 px-1.5 text-[10px] font-semibold tracking-[0.08em] uppercase align-bottom"
+                  style={{ color: SLATE, textAlign: h.a, whiteSpace: "nowrap" }}
+                >
+                  {h.t}
+                </th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {Object.keys(targets).map((r) => (
+            {Object.keys(targets)
+              // jabatan di luar laporan tidak perlu dikonfigurasi di sini
+              .filter((r) => targets[r].masukLaporan !== false)
+              .sort((a, b) => {
+                const ia = ROLES.indexOf(a), ib = ROLES.indexOf(b);
+                return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
+              })
+              .map((r) => (
               <tr key={r} className="border-t" style={{ borderColor: "#F0F2F6" }}>
-                <td className="py-2 pr-2">{r}</td>
-                <td className="py-2 text-right">
+                <td className="py-2 pr-2 align-middle">{r}</td>
+                <td className="py-2 px-1.5 text-center align-middle">
+                  <select
+                    value={targets[r].basis || "tulis"}
+                    onChange={(e) => setTargets((t) => ({ ...t, [r]: { ...t[r], basis: e.target.value } }))}
+                    className="rounded border px-2 py-1 text-[12.5px] bg-white"
+                    style={{ borderColor: LINE }}
+                    title="Jumlah artikel mana yang dibandingkan dengan target"
+                  >
+                    {BASIS.map((b) => (
+                      <option key={b.k} value={b.k}>{b.label}</option>
+                    ))}
+                  </select>
+                </td>
+                <td className="py-2 px-1.5 text-center align-middle">
                   <input type="number" value={targets[r].prod}
                     onChange={(e) => setTargets((t) => ({ ...t, [r]: { ...t[r], prod: +e.target.value || 0 } }))}
                     className="w-20 rounded border px-2 py-1 text-right text-[13px] tnum" style={{ borderColor: LINE }} />
                 </td>
-                <td className="py-2 text-right pl-2">
+                <td className="py-2 px-1.5 text-center align-middle">
                   <input type="number" step="5000" value={targets[r].views}
                     onChange={(e) => setTargets((t) => ({ ...t, [r]: { ...t[r], views: +e.target.value || 0 } }))}
                     className="w-24 rounded border px-2 py-1 text-right text-[13px] tnum" style={{ borderColor: LINE }} />
                 </td>
-                <td className="py-2 text-right pl-2">
+                <td className="py-2 px-1.5 text-center align-middle">
                   <input type="number" step="5000" value={targets[r].medsos || 0}
                     onChange={(e) => setTargets((t) => ({ ...t, [r]: { ...t[r], medsos: +e.target.value || 0 } }))}
                     className="w-24 rounded border px-2 py-1 text-right text-[13px] tnum"
                     style={{ borderColor: LINE, color: (targets[r].medsos || 0) ? INK : "#A6AEBC" }} />
+                </td>
+                <td className="py-2 px-1.5 text-center align-middle">
+                  <input type="checkbox"
+                    checked={targets[r].masukLaporan !== false}
+                    onChange={(e) => setTargets((t) => ({ ...t, [r]: { ...t[r], masukLaporan: e.target.checked } }))}
+                    style={{ accentColor: INK }}
+                    title="Centang berarti jabatan ini ikut laporan resmi dan rekap reward" />
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
 
-        <div className="mt-2 text-[11.5px] leading-relaxed" style={{ color: SLATE }}>
-          Target medsos 0 berarti jabatan itu tidak dinilai dari media sosial, dan bobot viewers-nya
-          kembali penuh ke web.
+        <div className="mt-2 text-[11.5px] leading-relaxed space-y-1" style={{ color: SLATE }}>
+          <p>
+            Target medsos 0 berarti jabatan itu tidak dinilai dari media sosial, dan bobot viewers-nya
+            kembali penuh ke web.
+          </p>
+          <p>
+            Kolom Laporan yang tidak dicentang membuat jabatan itu tetap dihitung dan tampil di klasemen,
+            tetapi tidak ikut laporan resmi, rekap reward, maupun kartu statistik.
+          </p>
+          {tersembunyi.length > 0 && (
+            <p>
+              Tidak ditampilkan di tabel karena penilaiannya diatur terpisah:{" "}
+              <b style={{ color: INK }}>{tersembunyi.join(", ")}</b>. Jabatan ini tetap bisa dipilih di
+              tab Jabatan dan tetap tampil di klasemen, hanya tidak ikut laporan.
+            </p>
+          )}
+          <p>
+            Dasar produktivitas menentukan angka mana yang dibandingkan dengan target artikel.
+            Jabatan penyunting biasanya memakai artikel disunting, jabatan penulis memakai artikel ditulis.
+            Untuk jabatan peralihan seperti Asisten Redaksi, pilih sesuai porsi kerja yang sebenarnya —
+            selisihnya besar terhadap skor akhir.
+          </p>
         </div>
 
         <div className="mt-5 font-semibold text-[14px]">Tabel grade</div>
